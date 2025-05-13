@@ -1,0 +1,101 @@
+# Slack Bot for Confluence Knowledge Base
+
+## Overview
+The Slack integration (`slack.py`) enables users to query the Confluence knowledge base directly from Slack using slash commands, @mentions, or direct messages. The bot uses the Claude AI assistant to generate natural language responses based on retrieved Confluence content.
+
+## Features
+
+### Interaction Methods
+1. **Slash Command**: `/rovo [query]`
+   - Available in any channel where the app is installed
+   - Example: `/rovo What is our marketing strategy?`
+
+2. **@Mentions**: `@Confluence-Assistant [query]`
+   - Works in any channel where the bot is present
+   - Example: `@Confluence-Assistant What is our pitch to investors?`
+
+3. **Direct Messages**:
+   - Users can send direct messages to the bot
+   - No special prefix needed, just ask a question
+
+### User Experience
+- **Immediate Acknowledgment**: Bot acknowledges queries immediately with a "thinking" message
+- **Formatted Responses**: Answers include the original question, formatted response, and timing information
+- **Threading Support**: Works in threads to keep conversations organized
+- **Error Handling**: Provides friendly error messages if something goes wrong
+
+## Technical Architecture
+
+### Components
+1. **Slack Interface**: Uses Slack Bolt SDK to handle events and communications
+2. **Socket Mode**: Connects to Slack's real-time API without requiring a public endpoint
+3. **Claude Integration**: Leverages the `ClaudeAssistant` class for question answering
+4. **Retrieval Pipeline**: Uses the Confluence retrieval system to find relevant content
+5. **Asynchronous Processing**: Handles queries in separate threads to avoid timeouts
+
+### Configuration
+- **Environment Variables**:
+  - `SLACK_BOT_TOKEN`: Begins with "xoxb-" - required for API operations
+  - `SLACK_APP_TOKEN`: Begins with "xapp-" - required for Socket Mode
+  - Uses existing `ANTHROPIC_API_KEY` and Pinecone settings
+
+### Performance
+- Uses the faster "claude-3-haiku" model for quicker responses
+- Configures for 3 retrieved chunks per query (top_k=3)
+- Response times typically range from 2-5 seconds
+
+## Logging
+- All interactions are logged to `logs/slack_bot.log`
+- Logs include:
+  - Incoming queries (slash commands, mentions, DMs)
+  - Response times
+  - Errors and exceptions
+  - Bot initialization events
+
+## Setup Instructions
+
+### Slack App Configuration
+1. Create a new Slack App at https://api.slack.com/apps
+2. Enable Socket Mode under "Socket Mode"
+3. Create a slash command:
+   - Command: `/rovo`
+   - Description: "Search the Confluence knowledge base"
+   - Usage hint: "[your question]"
+4. Add Bot Token Scopes:
+   - `chat:write` - Send messages
+   - `commands` - Handle slash commands
+   - `app_mentions:read` - Respond to @mentions
+5. Subscribe to Events:
+   - `app_mention` - When the bot is mentioned
+   - `message.im` - Direct messages to the bot
+6. Install the app to your workspace
+7. Copy the Bot Token (`xoxb-`) and App-Level Token (`xapp-`) to your environment
+
+### Running the Bot
+```bash
+# Install dependencies
+pip install slack-bolt
+
+# Set environment variables
+export SLACK_BOT_TOKEN=xoxb-your-token
+export SLACK_APP_TOKEN=xapp-your-token
+
+# Start the bot
+python slack.py
+```
+
+## Error Handling
+- Initialization failures (missing tokens, Claude API issues)
+- Query processing errors
+- Slack API communication failures
+- Comprehensive logging for troubleshooting
+
+## Integration Flow
+1. User submits a query via slash command, mention, or DM
+2. Bot acknowledges and shows "thinking" status
+3. Query is sent to Claude Assistant, which:
+   - Retrieves relevant Confluence chunks
+   - Passes context to Claude AI
+   - Generates a coherent response
+4. Response is formatted and posted back to the channel/thread
+5. Interactions are logged for audit and debugging

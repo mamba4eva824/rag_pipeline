@@ -1,0 +1,71 @@
+# Claude Integration for Confluence Knowledge Base
+
+## Overview
+The claude.py script creates a bridge between the Confluence retrieval system and Anthropic's Claude API. It implements a Retrieval-Augmented Generation (RAG) system that takes user questions, retrieves relevant Confluence content, and generates answers using Claude's capabilities.
+
+## Key Components
+
+1. ClaudeAssistant Class
+   - Main class handling integration between retrieval and Claude
+   - Initializes with configurable parameters (model, max tokens, temperature)
+   - Connects to Anthropic API using the ANTHROPIC_API_KEY environment variable
+
+2. Core Functionality
+   - retrieve_context(): Gets relevant chunks from Confluence based on user query
+   - generate_answer(): Sends formatted context and query to Claude API
+   - answer_question(): Complete workflow from query to answer
+   - handle_stream(): Processes streaming responses from Claude
+
+3. Input & Output
+   - Input: User question and optional parameters (top_k, filter, etc.)
+   - Output: Claude's response as text or stream
+   - Context format: Document title, URL, and content with clear separators
+
+4. Default Settings
+   - Default model: claude-3-opus-20240229 (configurable)
+   - Alternative models: claude-3-sonnet-20240229, claude-3-haiku-20240307
+   - Temperature: 0.0 (deterministic responses)
+   - Max tokens: 1000
+   - Top k results: 5
+
+5. System Prompt
+   - Instructs Claude to answer based ONLY on provided context
+   - Includes instructions to cite sources and admit when information is missing
+   - Customizable via system_prompt_template parameter
+
+6. Interactive Mode
+   - Command-line interface for testing queries
+   - Streams responses for better user experience
+   - Supports verbose mode to show retrieval details and timing
+
+7. Logging System
+   - Detailed logging of all interactions with timestamps
+   - Logs both user queries and Claude's responses
+   - Separate log files created daily with interaction IDs
+   - Performance metrics tracked (retrieval time, generation time, total time)
+   - Configurable verbosity levels (warnings to console, full details to file)
+
+## Integration Points
+- Slack: Used by slack_bot.py to provide answers in Slack channels
+- Command line: Can be used directly for interactive testing
+- API: Can be imported as a module in other Python applications
+
+## Technical Notes
+- Requires the Anthropic Python SDK
+- Uses the retrieval.py module to fetch content from Pinecone
+- Handles streaming responses for better UX
+- Error handling for missing API keys and failed requests
+- Comprehensive logging for auditing and debugging
+
+## Usage Example
+```python
+from llm.claude import ClaudeAssistant
+
+assistant = ClaudeAssistant()
+response = assistant.answer_question("What is our pitch to investors?")
+print(response)
+```
+## Performance
+- Retrieval time: Typically <1s for fetching relevant chunks
+- Generation time: Varies by model (haiku fastest, opus highest quality)
+- Total response time: ~2-5 seconds depending on query complexity

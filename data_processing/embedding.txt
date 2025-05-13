@@ -1,0 +1,96 @@
+# Confluence Data Embedding Process Summary
+
+## Overview
+This document summarizes the data processing pipeline for creating embeddings from Confluence content to be used in a Retrieval-Augmented Generation (RAG) system.
+
+## Data Processing Steps
+
+1. **Data Cleaning** (clean_confluence_data.py)
+   - Loaded raw Confluence data from JSON export
+   - Cleaned text by removing formatting artifacts, excess whitespace, and standardizing formatting
+   - Split content into 14 chunks with appropriate overlap for better retrieval
+   - Generated two output files:
+     - founders_confluence_cleaned.json - Full cleaned pages
+     - founders_confluence_chunks.json - Content split into smaller chunks
+
+2. **Embedding Generation** (embedding.py)
+   - Used SentenceTransformers library with the all-MiniLM-L6-v2 model
+   - Created 384-dimensional vector embeddings for each text chunk
+   - Processed 14 chunks from the Founders Confluence space
+   - Generated two output files:
+     - founders_confluence_embeddings_*.npy - NumPy array containing vector embeddings
+     - founders_confluence_embedding_metadata_*.json - Metadata mapping embeddings to their source content
+
+3. **Vector Database Integration** (pinecone_uploader.py)
+   - Loads the generated embeddings and metadata from the most recent files
+   - Connects to Pinecone using environment variables for authentication
+   - Creates or connects to a "confluence-founders" index with cosine similarity metric
+   - Upserts vectors to Pinecone in batches of 100 using chunk_id as the vector ID
+   - Includes all relevant metadata with each vector for context retrieval
+   - Provides detailed logging of the upload process and verification of success
+
+## Embedding Model Details
+- **Model**: all-MiniLM-L6-v2
+- **Dimensions**: 384
+- **Advantages**: Fast performance, compact size, good balance of quality and efficiency for RAG systems
+- **Alternative Models**: all-mpnet-base-v2 offers higher quality but slower performance (768 dimensions)
+
+## Data Statistics
+- Number of original pages: 5
+- Number of chunks after processing: 14
+- Average chunks per page: 2.8
+- Average words per chunk: 129.1
+
+## Vector Database Details
+- **Database**: Pinecone
+- **Index Name**: confluence-founders
+- **Similarity Metric**: Cosine
+- **Dimension**: 384
+- **Vector Count**: 14
+- **ID Format**: page_id-chunk_index (e.g., "5308428-1")
+- **Authentication**: Environment variables (PINECONE_API_KEY, PINECONE_ENVIRONMENT)
+
+## Complete RAG Pipeline
+1. **Data Collection**: Extract content from Confluence using REST API
+2. **Data Cleaning**: Process text to remove artifacts and standardize formatting
+3. **Chunking**: Split content into manageable chunks with overlap
+4. **Embedding**: Generate vector embeddings for each chunk
+5. **Vector Storage**: Store embeddings in Pinecone with metadata
+6. **Query Processing**: When a user asks a question:
+   - Generate an embedding for the query using the same model
+   - Perform similarity search in Pinecone to find relevant chunks
+   - Retrieve the original content and context from Pinecone metadata
+   - Use Claude API to generate responses based on retrieved context
+
+## File Structure
+```
+data_processing/
+  ├── exports/
+  │   ├── founders_confluence_cleaned.json       # Cleaned full pages
+  │   ├── founders_confluence_chunks.json        # Chunked text for embedding
+  │   ├── founders_confluence_embeddings_*.npy   # Vector embeddings
+  │   └── founders_confluence_embedding_metadata_*.json # Embedding metadata
+  ├── clean_confluence_data.py                   # Data cleaning script
+  ├── embedding.py                               # Embedding generation script
+  └── pinecone_uploader.py                       # Vector database integration script
+```
+
+## Embedding Format
+The embedding vectors are stored as a NumPy array with shape (14, 384), where:
+- 14 = number of text chunks
+- 384 = embedding dimensions per chunk
+
+Each embedding is linked to its source content via the metadata file, which includes:
+- chunk_id: Unique identifier for the chunk
+- embedding_index: Index position in the embedding array
+- page_id: Original Confluence page ID
+- title: Page title
+- url: Link to the original page
+- chunk_index: Position of this chunk within the page
+- total_chunks: Total number of chunks for the page
+
+## Running the Pipeline
+1. Extract and clean data: `python clean_confluence_data.py`
+2. Generate embeddings: `python embedding.py`
+3. Upload to Pinecone: `python pinecone_uploader.py` (requires PINECONE_API_KEY and PINECONE_ENVIRONMENT variables)
+

@@ -1,0 +1,46 @@
+class SentenceTransformerEmbeddingsWrapper(Embeddings):
+
+✅ What It Does:
+	•	Initializes a sentence transformer model (all-MiniLM-L6-v2 by default).
+	•	Implements two key methods:
+	•	embed_documents(texts: List[str]) – Embeds a list of documents into vector representations.
+	•	embed_query(text: str) – Embeds a single query string into a vector.
+
+Both methods use the underlying SentenceTransformer.encode() function and return results as Python lists, as expected by LangChain.
+
+
+class ConfluenceRetriever: (includes langchain, hybrid, and legacy retrieve)
+
+🔧 What It Does:
+	1.	Initialization (__init__):
+	•	Loads the SentenceTransformer embedding model (via a wrapper).
+	•	Connects to the Pinecone vector database using an API key.
+	•	Sets up a LangChain-compatible PineconeVectorStore for semantic search.
+	•	Stores configuration like index name and number of top results to return.
+
+	2.	Query Embedding (encode_query):
+	•	Converts a user’s query into a dense vector using the SentenceTransformer model.
+
+	3.	Semantic Search Options:
+	•	search_langchain():
+	•	    Uses LangChain’s similarity_search_with_score to find the most relevant content.
+	•	search_hybrid():
+	•	    Attempts to use a “hybrid” search strategy (dense + sparse), falling back to semantic search if not available.
+	•	retrieve() (Legacy):
+	•	    Directly uses Pinecone’s raw API for similarity search (bypassing LangChain).
+
+	4.	Result Formatting:
+	•	Converts results into a structured format with:
+	•	Document id
+	•	Similarity score
+	•	Metadata (e.g. title, content, URL)
+    
+	5.	Unified Interface (search):
+	•	Central method that routes the query to either LangChain, hybrid, or legacy methods.
+	•	Controls whether to return raw results or formatted summaries.
+
+⸻
+
+🧩 Where It Fits in the RAG Pipeline:
+	•	It is the retrieval engine: you give it a question, and it returns relevant Confluence content.
+	•	The output is meant to feed directly into an LLM (like Claude) to generate an informed answer.
