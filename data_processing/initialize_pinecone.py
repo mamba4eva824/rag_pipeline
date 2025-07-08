@@ -10,7 +10,7 @@ load_dotenv()
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 # Create a dense index with integrated embedding
-index_name = "confluence-embeddings" # Replace with your index name
+index_name = "hit-confluence" # Replace with your index name
 
 pc.create_index(
     name=index_name,
@@ -18,6 +18,6 @@ pc.create_index(
     metric="cosine", # Replace with your model metric
     spec=ServerlessSpec(
         cloud="aws",
-        region="us-east-1"
+        region="us-west-2"
     ) 
 )

@@ -1,0 +1,205 @@
+id,title,ancestors,original_length,cleaned_length,original_text_preview,cleaned_text_preview
+1135051117,Microsoft Active Directory,Headspace IT > Software Administration > Microsoft,10,8,"### true
+
+",### true
+1317109904,Microsoft,Headspace IT > Software Administration,10,8,"truetrue
+
+",truetrue
+1317470243,Software Administration,Headspace IT,17,15,"truenaturaltrue
+
+",truenaturaltrue
+1340243971,Jamf,Headspace IT > Software Administration,10,4,"  
+
+true
+
+",true
+1358659607,Orange Logic,Headspace IT > Software Administration,2,0,"
+
+",
+1448706120,Mobile OS Administration,Headspace IT > Hardware Administration,10,8,"truetrue
+
+",truetrue
+1450213380,Hardware Administration,Headspace IT,10,8,"truetrue
+
+",truetrue
+1450442753,Mac Administration,Headspace IT > Hardware Administration,10,8,"truetrue
+
+",truetrue
+1514340365,GCP Infrastructure,Headspace IT > Infrastructure Pages,34,32,"note
+
+Place Holder
+
+Place Holder
+
+","note
+
+Place Holder
+
+Place Holder"
+1514373161,Zoom Infrastructure,Headspace IT > Infrastructure Pages,36,34,"note
+
+Place Holder.
+
+Place Holder.
+
+","note
+
+Place Holder.
+
+Place Holder."
+1591050245,Atlassian,Headspace IT > Software Administration,26,24,"### Confluence
+
+### Jira
+
+","### Confluence
+
+### Jira"
+1714716723,Oomnitza,Headspace IT > Software Administration,6,4,"true
+
+",true
+1974730788,HashiCorp Vault,Headspace IT > Software Administration,49,47,"Administration pages for HashiCorp Vault.
+
+true
+
+","Administration pages for HashiCorp Vault.
+
+true"
+2054193258,Procurement/Vendors,Headspace IT > IT Operations,2,0,"
+
+",
+2054390018,Standard Operating Procedures (SOPs),Headspace IT > IT Operations,11,9,"true1true
+
+",true1true
+2054390060,SaaS Application Access,Headspace IT > IT Operations > Standard Operating Procedures (SOPs),2,0,"
+
+",
+2173632526,Onboarding & Offboarding,Headspace IT > IT Operations > Standard Operating Procedures (SOPs),4,0,"  
+
+",
+2465366017,Lessons Learned Register - IT Projects,Headspace IT,15,13,"(In-progress)
+
+",(In-progress)
+2498625568,Meraki Infrastructure,Headspace IT > Infrastructure Pages,6,4,"true
+
+",true
+2499018797,2415 - Network Diagram,Headspace IT > Infrastructure Pages > Meraki Infrastructure > Network - 2415 Michigan Ave,2,0,"
+
+",
+2502197249,Windows Administration,Headspace IT > Hardware Administration,6,4,"true
+
+",true
+2599485441,Corp IT - Root Cause Analysis,Headspace IT,2,0,"
+
+",
+2608169310,Password SOPs,Headspace IT > Software Administration > 1Password,2,0,"
+
+",
+2710470657,Lessons Learned Register,Headspace IT > IT Operations > Standard Operating Procedures (SOPs),2,0,"
+
+",
+2724397066,Headspace Health Documentation,Headspace IT,2,0,"
+
+",
+2760310806,Network - 2415 Michigan Ave,Headspace IT > Infrastructure Pages > Meraki Infrastructure,7,5,"true1
+
+",true1
+2760671239,"Network - 595 Market St, 7th Flr",Headspace IT > Infrastructure Pages > Meraki Infrastructure,7,5,"true1
+
+",true1
+2778791978,Okta,Headspace IT > Software Administration,3,1,"1
+
+",1
+2780037135,Okta Troubleshooting,Headspace IT > Software Administration > Okta,2,0,"
+
+",
+2784362497,Legacy Ginger Documentations,Headspace IT,2,0,"
+
+",
+2784362508,SOP,Headspace IT > Legacy Ginger Documentations,3,1,"1
+
+",1
+2784363068,Procurement,Headspace IT > Legacy Ginger Documentations,3,1,"1
+
+",1
+2784363195,Legacy Ginger - Jamf,Headspace IT > Software Administration > Jamf,2,0,"
+
+",
+2784363206,Ginger - Jamf Eng Docs,Headspace IT > Software Administration > Jamf > Legacy Ginger - Jamf,2,0,"
+
+",
+2784363388,Ginger - JamF Standards & Procedures,Headspace IT > Software Administration > Jamf > Legacy Ginger - Jamf,2,0,"
+
+",
+2797371414,Cisco Meraki,Headspace IT > Software Administration,7,5,"true1
+
+",true1
+2836627457,Microsoft Azure AD DS,Headspace IT > Software Administration > Microsoft,7,5,"true1
+
+",true1
+2853437491,595 - Network Diagram,"Headspace IT > Infrastructure Pages > Meraki Infrastructure > Network - 595 Market St, 7th Flr",2,0,"
+
+",
+2862940218,Network - 1315 Main St,Headspace IT > Infrastructure Pages > Meraki Infrastructure,7,5,"true1
+
+",true1
+2867298426,Braze,Headspace IT > Software Administration,2,0,"
+
+",
+2931556552,ServiceNow,Headspace IT > Software Administration,3,1,"1
+
+",1
+2938568803,Jamf Migration 2023,Headspace IT > Software Administration > Jamf,3,1,"1
+
+",1
+2947416065,Projects,Headspace IT,3,1,"1
+
+",1
+2956362453,1Password,Headspace IT > Software Administration,7,5,"true1
+
+",true1
+2967371970,Brivo,Headspace IT > Software Administration,3,1,"1
+
+",1
+3019014476,1315 - Network Diagram,Headspace IT > Infrastructure Pages > Meraki Infrastructure > Network - 1315 Main St,2,0,"
+
+",
+3061055778,Millie,Headspace IT > Software Administration,50,48,"To provision Millie, use app - Millie Okta group
+
+","To provision Millie, use app - Millie Okta group"
+3137175840,FedEx Pack & Return Program,Headspace IT > IT Operations > Standard Operating Procedures (SOPs) > FedEx,2,0,"
+
+",
+3187442228,Intune BYOD,Headspace IT > Software Administration > Microsoft > Intune,7,5,"true2
+
+",true2
+3187805324,Jamf BYOD,Headspace IT > Software Administration > Jamf,7,5,"true1
+
+",true1
+3415736451,Okta FastPass,Headspace IT > Software Administration > Okta,2,0,"
+
+",
+3465904179,Software Evaluations,Headspace IT,2,0,"
+
+",
+3571580961,RFC,Headspace IT,2,0,"
+
+",
+3644424282,Azure Hierarchy Resource Organization,Headspace IT > Software Administration > Microsoft > Microsoft Tenant (Headspace Prod) Overview > Microsoft Tenant (Headspace Prod) Infrasec Review,3,1,"1
+
+",1
+3977216112,External Data Source,Headspace IT > Software Administration > Atlassian > Jira Assets > Object Types,2,0,"
+
+",
+4144365690,Jira Service Management,Headspace IT > Software Administration > Atlassian,3,1,"1
+
+",1
+4159930384,IAM / RBAC Infrastructure,Headspace IT > Infrastructure Pages,29,27,"Description to be added.
+
+1
+
+","Description to be added.
+
+1"
+4159930402,Roles,Headspace IT > Infrastructure Pages > IAM / RBAC Infrastructure,6,4,"none
+
+",none

@@ -2,10 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Slack Bot for Confluence Knowledge Base
+Slack Bot for Confluence Knowledge Base RAG System
 
-This script implements a Slack bot that allows users to query the Confluence knowledge base
-via slash commands or mentions, and receive answers powered by Claude AI.
+This bot listens for mentions, slash commands, and direct messages in Slack,
+retrieves relevant information from Confluence using vector search,
+and provides helpful responses powered by OpenAI GPT.
+
+Usage:
+- Mention the bot: @shelby your question
+- Use slash command: /shelby your question  
+- Send direct message: just type your question
 """
 
 import os
@@ -18,52 +24,104 @@ from typing import Dict, Any, Optional
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from dotenv import load_dotenv
+from datetime import datetime
 
-# Update path to point to parent of retreiver directory
+# Add parent directory to path for imports
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 
-# Import sibling modules from retreiver folder (direct imports without retreiver prefix)
-from claude import ClaudeAssistant
-from retrieval import ConfluenceRetriever
+from openai_assistant import OpenAIAssistant
 
 # Load environment variables
 load_dotenv()
 
-# Set up logging
+# Set up Slack app with credentials
+app = App(
+    token=os.environ.get("SLACK_BOT_TOKEN"),
+    signing_secret=os.environ.get("SLACK_SIGNING_SECRET")
+)
+
+# Configure logging
 LOG_DIR = os.path.join(parent_dir, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(os.path.join(LOG_DIR, "slack_bot.log")),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+LOG_FILE = os.path.join(LOG_DIR, f"slack_bot_{datetime.now().strftime('%Y%m%d')}.log")
 
-# Initialize the Slack app
-SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
-SLACK_APP_TOKEN = os.environ.get("SLACK_APP_TOKEN")
+# Set up logger
+logger = logging.getLogger("slack_bot")
+logger.setLevel(logging.INFO)
 
-if not SLACK_BOT_TOKEN or not SLACK_APP_TOKEN:
-    logger.error("Missing required environment variables: SLACK_BOT_TOKEN and/or SLACK_APP_TOKEN")
-    raise ValueError("Set SLACK_BOT_TOKEN and SLACK_APP_TOKEN environment variables")
+# File handler
+file_handler = logging.FileHandler(LOG_FILE)
+file_handler.setLevel(logging.INFO)
+file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(file_format)
+logger.addHandler(file_handler)
 
-app = App(token=SLACK_BOT_TOKEN)
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.WARNING)
+console_handler.setFormatter(file_format)
+logger.addHandler(console_handler)
 
-# Initialize Claude Assistant
+# Initialize OpenAI Assistant
 try:
-    claude_assistant = ClaudeAssistant(
-        model_name="claude-3-haiku-20240307",  # Use faster model for Slack responses
+    openai_assistant = OpenAIAssistant(
+        model_name="gpt-4o",  # Use faster model for Slack responses
         max_tokens=1500,
-        top_k=3
+        top_k=5  # Increased from 3 to 5 for better coverage
     )
-    logger.info(f"Claude Assistant initialized with model: {claude_assistant.model_name}")
+    logger.info(f"OpenAI Assistant initialized with model: {openai_assistant.model_name}")
 except Exception as e:
-    logger.error(f"Error initializing Claude Assistant: {e}")
-    claude_assistant = None
+    logger.error(f"Error initializing OpenAI Assistant: {e}")
+    openai_assistant = None
+
+
+# Synonym mapping for better query understanding
+QUERY_SYNONYMS = {
+    'owner': ['owner', 'admin', 'administrator', 'approver', 'responsible', 'contact'],
+    'admin': ['owner', 'admin', 'administrator', 'approver', 'responsible', 'contact'],
+    'administrator': ['owner', 'admin', 'administrator', 'approver', 'responsible', 'contact'],
+    'approver': ['owner', 'admin', 'administrator', 'approver', 'responsible', 'contact'],
+    'responsible': ['owner', 'admin', 'administrator', 'approver', 'responsible', 'contact'],
+    'contact': ['owner', 'admin', 'administrator', 'approver', 'responsible', 'contact']
+}
+
+
+def preprocess_query(query: str) -> str:
+    """
+    Preprocess query to expand synonyms for better retrieval
+    
+    Args:
+        query: Original query string
+        
+    Returns:
+        str: Enhanced query with synonyms
+    """
+    original_query = query.lower()
+    enhanced_parts = []
+    
+    # Split query into words and check for synonyms
+    words = re.findall(r'\b\w+\b', original_query)
+    
+    for word in words:
+        if word in QUERY_SYNONYMS:
+            # Add original word and its synonyms
+            synonyms = QUERY_SYNONYMS[word]
+            # Create a synonym phrase for better semantic matching
+            synonym_phrase = f"({' OR '.join(synonyms)})"
+            enhanced_parts.append(synonym_phrase)
+            logger.info(f"Enhanced query term '{word}' with synonyms: {synonyms}")
+        else:
+            enhanced_parts.append(word)
+    
+    # Reconstruct query with enhancements
+    enhanced_query = ' '.join(enhanced_parts)
+    
+    if enhanced_query != original_query:
+        logger.info(f"Query preprocessing: '{query}' -> '{enhanced_query}'")
+        return enhanced_query
+    
+    return query
 
 
 def get_dm_channel_id(user_id: str) -> str:
@@ -79,9 +137,97 @@ def get_dm_channel_id(user_id: str) -> str:
         raise
 
 
+def extract_footer_info(results):
+    """
+    Extract author and timestamp information from retrieval results for footer
+    
+    Args:
+        results: List of retrieval results with metadata
+        
+    Returns:
+        str: Formatted footer string with author, timestamp, and reference information
+    """
+    if not results:
+        return None
+    
+    # Get the top result (most relevant) for footer information
+    top_result = results[0]
+    metadata = top_result.get('metadata', {})
+    
+    # Extract information with fallbacks
+    author = metadata.get('updated_by', 'Unknown')
+    if author == 'Unknown' or not author:
+        author = metadata.get('created_by', 'Unknown')
+    
+    last_updated = metadata.get('last_updated', 'Unknown')
+    updated_date = metadata.get('updated', 'Unknown')
+    title = metadata.get('title', 'Unknown Document')
+    url = metadata.get('url', '')
+    
+    # Use updated_date if last_updated is empty
+    if (not last_updated or last_updated == 'Unknown') and updated_date and updated_date != 'Unknown':
+        last_updated = updated_date
+    
+    # Format the date to YYYY-MM-DD only (remove time and timezone)
+    formatted_date = 'Unknown'
+    if last_updated and last_updated != 'Unknown':
+        try:
+            # Handle various date formats that might come from Confluence
+            if 'T' in str(last_updated):
+                # ISO format: 2024-12-02T21:02:59.310000+00:00 or 2024-12-02 21:02:59.310000+00:00
+                date_part = str(last_updated).split('T')[0].split(' ')[0]
+                formatted_date = date_part
+            elif ' ' in str(last_updated):
+                # Space-separated format: 2024-12-02 21:02:59.310000+00:00
+                formatted_date = str(last_updated).split(' ')[0]
+            else:
+                # Already in YYYY-MM-DD format or other simple format
+                formatted_date = str(last_updated)[:10]  # Take first 10 chars (YYYY-MM-DD)
+        except Exception:
+            formatted_date = 'Unknown'
+    
+    # Format the footer with two lines
+    # Line 1: Source: updated_by | Last Updated: YYYY-MM-DD
+    line1_parts = []
+    
+    # Author (prioritize updated_by, fallback to created_by)
+    if author and author != 'Unknown':
+        line1_parts.append(f"{author}")  # Removed "Source: " prefix to avoid duplication
+    else:
+        line1_parts.append("Unknown Author")
+    
+    # Last updated date  
+    if formatted_date and formatted_date != 'Unknown':
+        line1_parts.append(f"Last Updated: {formatted_date}")
+    else:
+        line1_parts.append("Last Updated: Unknown")
+    
+    line1 = " | ".join(line1_parts)
+    
+    # Line 2: Confluence Page: title | Reference (hyperlink)
+    line2_parts = []
+    
+    # Page title
+    if title and title != 'Unknown Document':
+        line2_parts.append(f"Confluence Page: {title}")
+    else:
+        line2_parts.append("Confluence Page: Unknown Document")
+    
+    # Reference hyperlink (Slack format: <URL|link text>)
+    if url:
+        line2_parts.append(f"<{url}|Reference>")
+    else:
+        line2_parts.append("Reference: Not Available")
+    
+    line2 = " | ".join(line2_parts)
+    
+    # Combine both lines
+    return f"{line1}\n{line2}"
+
+
 def process_and_respond(query: str, channel_id: str, user_id: str, thread_ts: Optional[str] = None) -> None:
     """
-    Process a query with the Claude Assistant and send the response to Slack
+    Process a query with the OpenAI Assistant and send the response to Slack
     
     Args:
         query: The user's question
@@ -109,17 +255,24 @@ def process_and_respond(query: str, channel_id: str, user_id: str, thread_ts: Op
             thread_ts=thread_ts
         )
         
-        if not claude_assistant:
-            raise ValueError("Claude Assistant not properly initialized")
+        if not openai_assistant:
+            raise ValueError("OpenAI Assistant not properly initialized")
         
-        # Get response from Claude (don't stream in Slack context)
-        response = claude_assistant.answer_question(query, verbose=False)
+        # Preprocess query for better synonym handling
+        enhanced_query = preprocess_query(query)
+        
+        # Get both the response and retrieval results for footer information
+        results, context = openai_assistant.retrieve_context(enhanced_query)
+        response = openai_assistant.generate_answer(query, context)  # Use original query for response
+        
+        # Extract footer information from results
+        footer_info = extract_footer_info(results)
         
         # Calculate elapsed time
         elapsed_time = time.time() - start_time
         timing_info = f"_Response generated in {elapsed_time:.2f} seconds_"
         
-        # Format the response for Slack
+        # Create the blocks for the response
         blocks = [
             {
                 "type": "section",
@@ -137,17 +290,31 @@ def process_and_respond(query: str, channel_id: str, user_id: str, thread_ts: Op
                     "type": "mrkdwn",
                     "text": response
                 }
-            },
-            {
+            }
+        ]
+        
+        # Add footer if we have author/timestamp information
+        if footer_info:
+            blocks.append({
                 "type": "context",
                 "elements": [
                     {
                         "type": "mrkdwn",
-                        "text": timing_info
+                        "text": f"📝 *Source:* {footer_info}"
                     }
                 ]
-            }
-        ]
+            })
+        
+        # Add timing information
+        blocks.append({
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": timing_info
+                }
+            ]
+        })
         
         # Update the thinking message with the actual response
         app.client.chat_update(
@@ -182,9 +349,9 @@ def process_and_respond(query: str, channel_id: str, user_id: str, thread_ts: Op
             logger.error(f"Failed to send error message: {nested_error}")
 
 
-@app.command("/rovo")
+@app.command("/shelby")
 def handle_confluence_search_command(ack, command, logger):
-    """Handle /rovo slash command"""
+    """Handle /shelby slash command"""
     # Acknowledge command request
     ack()
     
@@ -201,7 +368,7 @@ def handle_confluence_search_command(ack, command, logger):
     if not query:
         # Use respond which works with the response_url
         ack(
-            text=":information_source: Please provide a question after the command. Example: `/rovo What is our marketing strategy?`",
+            text=":information_source: Please provide a question after the command. Example: `/shelby What is our marketing strategy?`",
             response_type="ephemeral"
         )
         return
@@ -228,7 +395,7 @@ def handle_app_mention(event, say):
     
     if not query:
         say(
-            text=":information_source: Please provide a question with your mention. Example: `@Confluence Assistant What is our marketing strategy?`",
+            text=":information_source: Please provide a question with your mention. Example: `@Shelby What is our marketing strategy?`",
             thread_ts=thread_ts
         )
         return
@@ -285,8 +452,8 @@ def handle_errors(error):
 
 def main():
     """Main function to start the Slack bot"""
-    if not claude_assistant:
-        logger.error("Cannot start Slack bot because Claude Assistant failed to initialize")
+    if not openai_assistant:
+        logger.error("Cannot start Slack bot because OpenAI Assistant failed to initialize")
         return
     
     # Verify bot token works by making a simple API call
@@ -300,7 +467,7 @@ def main():
         return
         
     logger.info("Starting Slack bot using Socket Mode")
-    handler = SocketModeHandler(app, SLACK_APP_TOKEN)
+    handler = SocketModeHandler(app, os.environ.get("SLACK_APP_TOKEN"))
     
     try:
         handler.start()

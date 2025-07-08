@@ -30,7 +30,7 @@ from langchain_core.documents import Document
 load_dotenv()
 
 # Default parameters
-DEFAULT_INDEX_NAME = "confluence-founders"
+DEFAULT_INDEX_NAME = "hit-confluence"
 DEFAULT_TOP_K = 5
 MODEL_NAME = "all-MiniLM-L6-v2"  # Make sure this matches the model used for embedding
 

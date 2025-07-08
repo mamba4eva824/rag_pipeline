@@ -66,7 +66,7 @@ def create_embeddings(chunks: List[Dict[str, Any]], model_name: str = MODEL_NAME
     # Convert to numpy array
     embeddings_array = np.array(embeddings)
     
-    # Create metadata for each embedding
+    # Create metadata for each embedding with enhanced timestamp information
     metadata = []
     for i, chunk in enumerate(chunks):
         metadata.append({
@@ -75,12 +75,28 @@ def create_embeddings(chunks: List[Dict[str, Any]], model_name: str = MODEL_NAME
             "page_id": chunk["page_id"],
             "title": chunk["title"],
             "url": chunk["url"],
+            "space": chunk.get("space", "Unknown"),
             "chunk_index": chunk["chunk_index"],
             "total_chunks": chunk["total_chunks"],
-            "content": chunk["content"]  # Add the text content to metadata
+            "content": chunk["content"],
+            "ancestors": chunk["metadata"].get("ancestors", ""),
+            "created": chunk["metadata"].get("created", ""),
+            "updated": chunk["metadata"].get("updated", ""),
+            "created_by": chunk["metadata"].get("created_by", ""),
+            "updated_by": chunk["metadata"].get("updated_by", ""),
+            "word_count": chunk["metadata"]["word_count"],
+            "char_count": chunk["metadata"]["char_count"],
+            "labels": chunk["metadata"].get("labels", "")
         })
     
     print(f"Created {len(embeddings)} embeddings of dimension {embeddings_array.shape[1]}")
+    
+    # Display timestamp statistics
+    created_count = sum(1 for meta in metadata if meta['created'] and meta['created'] != 'unknown')
+    updated_count = sum(1 for meta in metadata if meta['updated'] and meta['updated'] != 'unknown')
+    print(f"✓ Embeddings with creation timestamps: {created_count}/{len(metadata)}")
+    print(f"✓ Embeddings with update timestamps: {updated_count}/{len(metadata)}")
+    
     return embeddings_array, metadata
 
 def save_embeddings(embeddings: np.ndarray, metadata: List[Dict[str, Any]]) -> Tuple[str, str]:

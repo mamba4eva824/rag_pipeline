@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Claude Integration for Confluence Knowledge Base
+OpenAI Integration for Confluence Knowledge Base
 
-This script provides functionality to generate coherent answers from Claude AI
+This script provides functionality to generate coherent answers from OpenAI GPT
 based on user questions and retrieved context from Confluence chunks.
 """
 
@@ -15,8 +15,7 @@ import logging
 from typing import List, Dict, Any, Union, Optional, Tuple, Iterator
 from datetime import datetime
 import time
-import anthropic
-from anthropic import Anthropic
+from openai import OpenAI
 from dotenv import load_dotenv
 
 # Add parent directory to path to allow imports from sibling modules
@@ -27,18 +26,16 @@ from retreiver.retrieval import ConfluenceRetriever
 # Load environment variables
 load_dotenv()
 
-# Configure Claude model
-DEFAULT_MODEL = "claude-3-opus-20240229"  # Highest quality
-# DEFAULT_MODEL = "claude-3-sonnet-20240229"  # Good balance of quality and speed
-# DEFAULT_MODEL = "claude-3-haiku-20240307"  # Fastest option
+# Configure OpenAI model
+DEFAULT_MODEL = "gpt-4o" 
 
 # Configure logging
 LOG_DIR = os.path.join(parent_dir, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, f"claude_interactions_{datetime.now().strftime('%Y%m%d')}.log")
+LOG_FILE = os.path.join(LOG_DIR, f"openai_interactions_{datetime.now().strftime('%Y%m%d')}.log")
 
 # Set up logger
-logger = logging.getLogger("claude_assistant")
+logger = logging.getLogger("openai_assistant")
 logger.setLevel(logging.INFO)
 
 # File handler for logging to file
@@ -54,27 +51,27 @@ console_handler.setLevel(logging.WARNING)  # Only warnings and errors to console
 console_handler.setFormatter(file_format)
 logger.addHandler(console_handler)
 
-class ClaudeAssistant:
-    """Class for generating answers from Claude based on retrieved context"""
+class OpenAIAssistant:
+    """Class for generating answers from OpenAI GPT based on retrieved context"""
     
     def __init__(
         self, 
         retriever: Optional[ConfluenceRetriever] = None,
         model_name: str = DEFAULT_MODEL,
         max_tokens: int = 1000,
-        temperature: float = 0.0,  # 0 for deterministic responses
+        temperature: float = 0.7,  # 0 for deterministic responses
         top_k: int = 5,  # Number of chunks to retrieve
         system_prompt_template: Optional[str] = None,
         enable_logging: bool = True
     ):
-        """Initialize the Claude Assistant with configuration"""
+        """Initialize the OpenAI Assistant with configuration"""
         # Set up API key
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY must be set in environment variables")
+            raise ValueError("OPENAI_API_KEY must be set in environment variables")
         
-        # Initialize Anthropic client
-        self.client = Anthropic(api_key=api_key)
+        # Initialize OpenAI client
+        self.client = OpenAI(api_key=api_key)
         
         # Initialize retriever if not provided
         if not retriever:
@@ -96,16 +93,19 @@ class ClaudeAssistant:
             Answer questions based ONLY on the provided Confluence context.
             If the context doesn't contain the answer, say "I don't have enough information to answer that question."
             Do not make up information or use knowledge outside the provided context.
-            Include relevant URLs from the context when appropriate.
-            When providing information, include document creation and last updated dates when available to help users understand how current the information is.
-            Format dates in a user-friendly way (e.g., "Updated on March 15, 2024").
+            
+            IMPORTANT: You will be provided with multiple document chunks. Search through ALL of them carefully to find the most relevant information. The answer might be in any of the provided chunks, not necessarily the first one.
+            
+            Provide clear, direct answers without including URLs or links in your response text.
+            Focus on delivering the information content - source attribution will be handled separately.
+            Provide clear, direct answers without adding generic statements about document dates or creation information.
             """
         else:
             self.system_prompt_template = system_prompt_template
         
         # Log initialization
         if self.enable_logging:
-            logger.info(f"ClaudeAssistant initialized with model: {model_name}, top_k: {top_k}")
+            logger.info(f"OpenAIAssistant initialized with model: {model_name}, top_k: {top_k}")
     
     def retrieve_context(
         self, 
@@ -131,8 +131,8 @@ class ClaudeAssistant:
         # Get results from retriever
         results = self.retriever.search(query, top_k=top_k, filter=filter)
         
-        # Use the new formatting function for consistent author information
-        formatted_context = format_results_for_claude(results)
+        # Use the formatting function for consistent author information
+        formatted_context = format_results_for_openai(results)
         
         # Log retrieval results
         if self.enable_logging:
@@ -152,9 +152,9 @@ class ClaudeAssistant:
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         stream: bool = False
-    ) -> Union[str, Any]:  # Use Any for the streaming response type
+    ) -> Union[str, Any]:
         """
-        Generate an answer from Claude based on the query and context
+        Generate an answer from OpenAI GPT based on the query and context
         
         Args:
             query: The user question
@@ -165,7 +165,7 @@ class ClaudeAssistant:
             stream: Whether to stream the response
             
         Returns:
-            Claude's response as a string or a stream
+            OpenAI's response as a string or a stream
         """
         # Use class defaults if not provided
         if not model:
@@ -182,22 +182,25 @@ class ClaudeAssistant:
         # Construct the system prompt
         system_prompt = self.system_prompt_template.strip()
         
-        # Log request to Claude
+        # Log request to OpenAI
         if self.enable_logging:
-            logger.info(f"Sending request to Claude model: {model}")
+            logger.info(f"Sending request to OpenAI model: {model}")
             logger.info(f"Query: '{query}'")
-            # Log a truncated version of the context to avoid excessive logging
-            context_preview = context[:500] + "..." if len(context) > 500 else context
-            logger.info(f"Context (truncated): {context_preview}")
+            # Log more of the context to better understand what's being sent
+            context_preview = context[:2000] + "..." if len(context) > 2000 else context
+            logger.info(f"Context (first 2000 chars): {context_preview}")
         
-        # Send request to Claude API
+        # Send request to OpenAI API
         try:
-            response = self.client.messages.create(
+            response = self.client.chat.completions.create(
                 model=model,
-                system=system_prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 messages=[
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
                     {
                         "role": "user",
                         "content": f"I need information based on our company's internal knowledge base. Here are the most relevant documents:\n\n{context}\n\nQuestion: {query}"
@@ -211,15 +214,15 @@ class ClaudeAssistant:
                     logger.info("Streaming response initiated")
                 return response
             else:
-                answer = response.content[0].text
-                # Log Claude's response
+                answer = response.choices[0].message.content
+                # Log OpenAI's response
                 if self.enable_logging:
                     answer_preview = answer[:500] + "..." if len(answer) > 500 else answer
-                    logger.info(f"Claude response: {answer_preview}")
+                    logger.info(f"OpenAI response: {answer_preview}")
                 return answer
 
         except Exception as e:
-            error_msg = f"Error generating answer from Claude: {e}"
+            error_msg = f"Error generating answer from OpenAI: {e}"
             if self.enable_logging:
                 logger.error(error_msg)
             print(error_msg)
@@ -233,7 +236,7 @@ class ClaudeAssistant:
         stream: bool = False,
         verbose: bool = False,
         log_interaction: bool = True
-    ) -> Union[str, Any]:  # Use Any for the streaming response type
+    ) -> Union[str, Any]:
         """
         Complete process to answer a question - retrieve context and generate answer
         
@@ -246,7 +249,7 @@ class ClaudeAssistant:
             log_interaction: Whether to log this specific interaction
             
         Returns:
-            Claude's response as a string or a stream
+            OpenAI's response as a string or a stream
         """
         interaction_id = datetime.now().strftime("%Y%m%d%H%M%S")
         start_time = time.time()
@@ -293,13 +296,13 @@ class ClaudeAssistant:
         Process and print a streaming response
         
         Args:
-            stream: The streaming response from Claude
+            stream: The streaming response from OpenAI
             log_response: Whether to log the complete response after streaming
         """
         response_chunks = []
         for chunk in stream:
-            if chunk.type == "content_block_delta" and hasattr(chunk.delta, "text"):
-                text = chunk.delta.text
+            if chunk.choices[0].delta.content is not None:
+                text = chunk.choices[0].delta.content
                 print(text, end="", flush=True)
                 response_chunks.append(text)
         
@@ -309,11 +312,11 @@ class ClaudeAssistant:
         if self.enable_logging and log_response:
             full_response = "".join(response_chunks)
             response_preview = full_response[:500] + "..." if len(full_response) > 500 else full_response
-            logger.info(f"Claude streaming response (reconstructed): {response_preview}")
+            logger.info(f"OpenAI streaming response (reconstructed): {response_preview}")
 
 
-def format_results_for_claude(results: List[Dict[str, Any]]) -> str:
-    """Format search results for Claude context"""
+def format_results_for_openai(results: List[Dict[str, Any]]) -> str:
+    """Format search results for OpenAI context"""
     formatted_chunks = []
     
     for i, result in enumerate(results, 1):
@@ -367,18 +370,17 @@ Content:
 
 
 def main():
-    """Interactive demo of Claude Assistant"""
-    print("=== Claude Assistant for Confluence Knowledge Base ===")
+    """Interactive demo of OpenAI Assistant"""
+    print("=== OpenAI Assistant for Confluence Knowledge Base ===")
     
-    # Initialize Claude Assistant
+    # Initialize OpenAI Assistant
     try:
-        assistant = ClaudeAssistant(top_k=3, model_name="claude-3-haiku-20240307")  # Use faster model for testing
-        print(f"Initialized with model: {assistant.model_name}")
+        assistant = OpenAIAssistant(top_k=3, model_name="gpt-4o")  
         print(f"Using top_k = {assistant.top_k} for retrieval")
         print(f"Logging enabled: interactions will be logged to {LOG_FILE}")
     except ValueError as e:
         print(f"Error: {e}")
-        print("Set the ANTHROPIC_API_KEY environment variable and try again.")
+        print("Set the OPENAI_API_KEY environment variable and try again.")
         return
     
     # Interactive query loop
@@ -399,4 +401,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 

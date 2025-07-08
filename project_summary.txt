@@ -1,0 +1,91 @@
+CONFLUENCE RAG PIPELINE - PROJECT SUMMARY
+==========================================
+
+PROJECT OVERVIEW
+----------------
+The Confluence RAG Pipeline is a Retrieval-Augmented Generation (RAG) system that extracts content from Confluence spaces, processes it into searchable chunks, and makes it accessible through a Slack bot powered by OpenAI's ChatGPT. This enables teams to query their Confluence knowledge base using natural language and receive AI-generated answers grounded in their actual documentation.
+
+CORE FEATURES
+-------------
+• Automated Confluence data extraction from specified spaces
+• Intelligent text processing and chunking for optimal retrieval
+• Vector search using Pinecone for semantic similarity
+• Smart retrieval system that finds relevant information
+• Slack bot integration for easy user interaction
+• AI-generated answers from OpenAI ChatGPT
+• Author and timestamp tracking for document metadata
+
+TECHNICAL ARCHITECTURE
+----------------------
+The system consists of three main components:
+
+1. DATA EXTRACTION & PROCESSING PIPELINE
+   - Pulls content from Confluence via API
+   - Cleans and chunks the text into semantically meaningful pieces
+   - Creates embeddings using SentenceTransformer
+   - Uploads embeddings to Pinecone vector database
+
+2. RETRIEVAL SYSTEM
+   - Queries Pinecone for relevant content based on user questions
+   - Provides context to the OpenAI model for answer generation
+
+3. SLACK INTEGRATION
+   - Handles user queries via slash commands, mentions, or direct messages
+   - Processes responses asynchronously
+   - Returns formatted answers to users
+
+WORKFLOW PROCESS
+----------------
+1. Data Extraction: Retrieves content from Confluence spaces using API
+2. Text Processing: Cleans and segments content into meaningful chunks
+3. Embedding Generation: Converts text chunks to vector embeddings
+4. Vector Storage: Uploads embeddings to Pinecone for fast similarity search
+5. Query Processing: Converts user questions to embeddings, searches for relevant content
+6. Response Generation: Uses OpenAI ChatGPT to generate comprehensive answers
+7. Response Delivery: Returns natural language answers to users via Slack
+
+PROJECT STRUCTURE
+-----------------
+rag_pipeline/
+├── extraction/                 # Confluence data extraction
+│   ├── confluence_data_extractor.py
+│   └── clean_confluence_data.py
+├── data_processing/           # Data processing and embeddings
+│   ├── clean_hit_confluence_data.py
+│   ├── create_hit_embeddings.py
+│   └── pinecone_uploader.py
+├── retreiver/                 # Retrieval and response generation
+│   ├── retrieval.py          # Vector search functionality
+│   ├── openai_assistant.py   # OpenAI ChatGPT API interface
+│   └── slack.py              # Slack bot integration
+├── exports/                   # Generated data files
+└── logs/                      # Application logs
+
+SETUP REQUIREMENTS
+------------------
+• Python 3.8+
+• Confluence API credentials
+• OpenAI API key
+• Pinecone API key and environment
+• Slack Bot tokens (optional)
+• Required Python packages: SentenceTransformers, LangChain, Slack SDK
+
+USAGE PATTERNS
+--------------
+Users can interact with the system through Slack in three ways:
+1. Slash Command: /shelby [question]
+2. Mention: @Shelby [question]  
+3. Direct Message: Send message directly to bot
+
+The bot acknowledges queries immediately, processes them in the background, retrieves relevant Confluence content, generates comprehensive answers using AI, and posts formatted responses back to the channel/thread.
+
+KEY TECHNOLOGIES
+----------------
+• Confluence API for data extraction
+• Pinecone for vector database storage
+• OpenAI ChatGPT for answer generation
+• SentenceTransformers for text embeddings
+• LangChain for enhanced retrieval capabilities
+• Slack SDK for bot integration
+
+This project effectively bridges the gap between static documentation and dynamic knowledge access, enabling teams to leverage their Confluence content through conversational AI interfaces. 

@@ -1,6 +1,16 @@
-# Confluence Knowledge Assistant
+# Confluence RAG Pipeline
 
-A complete RAG (Retrieval-Augmented Generation) pipeline that extracts Confluence knowledge base content, processes it into embeddings, and makes it accessible through a Slack bot powered by Claude AI.
+A Retrieval-Augmented Generation (RAG) system that extracts content from Confluence spaces, processes it into searchable chunks, and makes it accessible through a Slack bot powered by OpenAI's ChatGPT.
+
+## Features
+
+- **Automated Confluence Data Extraction**: Pulls content from specified Confluence spaces
+- **Intelligent Text Processing**: Cleans and chunks content for optimal retrieval
+- **Vector Search**: Uses Pinecone for semantic similarity search
+- **Smart Retrieval**: Finds the most relevant information for user queries
+- **Slack Integration**: Easy-to-use Slack bot interface
+- **Receive AI-generated answers from OpenAI that are grounded in your Confluence content
+- **Author & Timestamp Tracking**: Shows who created/updated documents and when
 
 ## Project Overview
 
@@ -11,6 +21,19 @@ This project enables teams to:
 - Store embeddings in a Pinecone vector database
 - Query the knowledge base using natural language through Slack
 - Receive AI-generated answers from Claude that are grounded in your Confluence content
+
+## How It Works
+
+1. **Data Extraction**: Retrieves content from specified Confluence spaces using the Confluence API
+2. **Text Processing**: Cleans and segments the content into semantically meaningful chunks
+3. **Embedding Generation**: Converts text chunks into vector embeddings using SentenceTransformers
+4. **Vector Storage**: Uploads embeddings to Pinecone for fast similarity search
+5. **Query Processing**: When a user asks a question, the system:
+   - Converts the question to a vector embedding
+   - Searches Pinecone for the most relevant content chunks
+   - Provides context to the OpenAI model
+   - Generate a comprehensive answer using OpenAI's ChatGPT
+6. **Response Delivery**: Returns a natural language answer grounded in the retrieved Confluence content
 
 ## Architecture
 
@@ -24,7 +47,7 @@ The system consists of three main components:
 
 2. **Retrieval System**
    - Queries Pinecone for relevant content based on user questions
-   - Provides context to the Claude AI model
+   - Provides context to the OpenAI model
 
 3. **Slack Integration**
    - Handles user queries via slash commands, mentions, or direct messages
@@ -53,20 +76,21 @@ pip install -r requirements.txt
 Create a `.env` file in the project root with the following variables:
 
 ```
-# Confluence credentials
-CONFLUENCE_URL=https://your-instance.atlassian.net
-CONFLUENCE_USERNAME=your-email@example.com
-CONFLUENCE_API_TOKEN=your-api-token
+# Required API credentials
+CONFLUENCE_URL=https://your-company.atlassian.net
+CONFLUENCE_USERNAME=your-email@company.com
+CONFLUENCE_API_TOKEN=your-confluence-api-token
 
-# Pinecone credentials
+# OpenAI API credentials
+OPENAI_API_KEY=your-openai-api-key
+
+# Pinecone Vector Database
 PINECONE_API_KEY=your-pinecone-api-key
+PINECONE_ENVIRONMENT=us-west-2
 
-# Claude API credentials
-ANTHROPIC_API_KEY=your-anthropic-api-key
-
-# Slack credentials
-SLACK_BOT_TOKEN=xoxb-your-bot-token
-SLACK_APP_TOKEN=xapp-your-app-token
+# Optional: Slack Bot credentials (for Slack integration)
+SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
+SLACK_APP_TOKEN=xapp-your-slack-app-token
 ```
 
 ### 3. Running the Pipeline
@@ -75,15 +99,28 @@ Follow these steps in order to set up and run the complete system:
 
 #### Step 1: Extract Content from Confluence
 
-Run the Jupyter Notebook to extract data from your Confluence instance:
+**Option A: Command Line Script (Recommended)**
 
 ```bash
-jupyter notebook extraction/confluence_data_extractor.ipynb
+# List available spaces
+python extraction/confluence_data_extractor.py --list-spaces
+
+# Extract data from a specific space
+python extraction/confluence_data_extractor.py --space SPACE_KEY --include-content
+
+# Example with options
+python extraction/confluence_data_extractor.py --space Founders --include-content --max-pages 10
 ```
 
-- Set your target Confluence space in the notebook
-- Run all cells to extract the content
-- This will create files in the `extraction/exports/` directory
+**Option B: Jupyter Notebook**
+
+Run the Jupyter Notebook (legacy method):
+
+```bash
+jupyter notebook extraction/confluence_data_extractor_legacy.ipynb
+```
+
+Both methods will create files in the `extraction/exports/` directory.
 
 #### Step 2: Process Content and Create Chunks
 
@@ -138,11 +175,11 @@ python retreiver/slack.py
 
 Once the system is running, users can interact with the Confluence knowledge base in several ways:
 
-1. **Slash Command**: `/rovo [your question]`
-   - Example: `/rovo What is our marketing strategy?`
+1. **Slash Command**: `/shelby [your question]`
+   - Example: `/shelby What is our marketing strategy?`
 
-2. **Mention**: `@Confluence-Assistant [your question]`
-   - Example: `@Confluence-Assistant What are our pricing tiers?`
+2. **Mention**: `@Shelby [your question]`
+   - Example: `@Shelby What are our pricing tiers?`
 
 3. **Direct Message**: Simply send a message to the bot
    - Example: `How do we handle onboarding for new customers?`
@@ -157,35 +194,31 @@ The bot will:
 ## Project Structure
 
 ```
-confluence_extraction/
-├── data_processing/
-│   ├── embedding.py             # Creates embeddings from chunks
-│   ├── embedding.txt            # Documentation for embedding process
-│   ├── initialize_pinecone.py   # Sets up Pinecone index (first-time)
-│   ├── pinecone_uploader.py     # Uploads embeddings to Pinecone
-│   └── exports/                 # Stores generated embeddings and metadata
-├── extraction/
-│   ├── clean_confluence_data.py # Processes raw Confluence content
-│   ├── confluence_data_extractor.ipynb # Extracts data from Confluence
-│   └── exports/                 # Stores raw extracted data
-├── logs/                        # Contains system and interaction logs
-├── retreiver/
-│   ├── claude.py                # Interfaces with Claude AI API
-│   ├── retrieval.py             # Handles retrieving content from Pinecone
-│   ├── slack.py                 # Slack bot implementation
-│   └── slack.txt                # Documentation for Slack integration
-└── .env                         # Environment variables (create this file)
+rag_pipeline/
+├── extraction/                 # Confluence data extraction
+│   ├── confluence_data_extractor.py
+│   └── clean_confluence_data.py
+├── data_processing/           # Data processing and embeddings
+│   ├── clean_hit_confluence_data.py
+│   ├── create_hit_embeddings.py
+│   └── pinecone_uploader.py
+├── retreiver/                 # Retrieval and response generation
+│   ├── retrieval.py          # Vector search functionality
+│   ├── openai_assistant.py   # Interfaces with OpenAI ChatGPT API
+│   └── slack.py              # Slack bot integration
+├── exports/                   # Generated data files
+└── logs/                      # Application logs
 ```
 
 ## Dependencies
 
-- Python 3.8+
-- Jupyter Notebook
-- SentenceTransformers
-- Pinecone
-- Claude AI (Anthropic)
-- Slack Bolt SDK
-- pandas, numpy, requests, etc.
+- **Python 3.8+**
+- **Confluence API** (for data extraction)
+- **Pinecone** (vector database for semantic search)
+- **OpenAI API** (for ChatGPT responses)
+- **SentenceTransformers** (for text embeddings)
+- **LangChain** (for enhanced retrieval capabilities)
+- **Slack SDK** (optional, for Slack bot integration)
 
 ## Troubleshooting
 

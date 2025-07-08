@@ -6,17 +6,17 @@ The Slack integration (`slack.py`) enables users to query the Confluence knowled
 ## Features
 
 ### Interaction Methods
-1. **Slash Command**: `/rovo [query]`
+1. **Slash Command**: `/shelby [query]`
    - Available in any channel where the app is installed
-   - Example: `/rovo What is our marketing strategy?`
+   - Example: `/shelby What is our marketing strategy?`
 
-2. **@Mentions**: `@Confluence-Assistant [query]`
-   - Works in any channel where the bot is present
-   - Example: `@Confluence-Assistant What is our pitch to investors?`
+2. **@Mentions**: `@Shelby [query]`
+   - Available in any channel where the bot is invited
+   - Example: `@Shelby What are our pricing tiers?`
 
-3. **Direct Messages**:
-   - Users can send direct messages to the bot
-   - No special prefix needed, just ask a question
+3. **Direct Messages**: Send questions directly to Shelby
+   - Private conversation with the bot
+   - Example: Open DM with Shelby and ask "How do I reset my password?"
 
 ### User Experience
 - **Immediate Acknowledgment**: Bot acknowledges queries immediately with a "thinking" message
@@ -58,7 +58,7 @@ The Slack integration (`slack.py`) enables users to query the Confluence knowled
 1. Create a new Slack App at https://api.slack.com/apps
 2. Enable Socket Mode under "Socket Mode"
 3. Create a slash command:
-   - Command: `/rovo`
+   - Command: `/shelby`
    - Description: "Search the Confluence knowledge base"
    - Usage hint: "[your question]"
 4. Add Bot Token Scopes:

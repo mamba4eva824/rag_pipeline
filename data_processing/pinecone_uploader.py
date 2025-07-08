@@ -27,8 +27,8 @@ DATA_DIR = "exports"
 def find_latest_files() -> tuple:
     """Find the latest embeddings and metadata files in the exports directory"""
     # Find all embedding files
-    embedding_files = glob.glob(os.path.join(DATA_DIR, "founders_confluence_embeddings_*.npy"))
-    metadata_files = glob.glob(os.path.join(DATA_DIR, "founders_confluence_embedding_metadata_*.json"))
+    embedding_files = glob.glob(os.path.join(DATA_DIR, "HIT_confluence_embeddings_*.npy"))
+    metadata_files = glob.glob(os.path.join(DATA_DIR, "HIT_confluence_embedding_metadata_*.json"))
     
     if not embedding_files or not metadata_files:
         raise FileNotFoundError("Embedding or metadata files not found")
@@ -146,7 +146,7 @@ def main():
         print(f"Embedding dimension: {dimension}")
         
         # Initialize Pinecone with appropriate index name
-        index_name = "confluence-founders"
+        index_name = "hit-confluence"
         index = initialize_pinecone(index_name, dimension)
         
         # Prepare vectors for upsert

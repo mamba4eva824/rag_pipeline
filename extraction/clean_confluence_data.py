@@ -139,19 +139,29 @@ def main():
         word_count = len(cleaned_text.split())
         char_count = len(cleaned_text)
         
-        # Create cleaned page record
+        # Format timestamps for better handling
+        created = page.get('created', '')
+        updated = page.get('updated', '')
+        created_by = page.get('created_by', '')
+        updated_by = page.get('updated_by', '')
+        
+        # Create cleaned page record with enhanced metadata
         cleaned_page = {
             'id': page.get('id', ''),
             'title': page.get('title', ''),
             'url': page.get('url', ''),
-            'space': 'Founders',  # From the filename
+            'space': page.get('space', 'Unknown'),
             'ancestors': page.get('ancestors', ''),
-            'last_updated': page.get('last_updated', ''),
+            'created': created,
+            'updated': updated,
+            'created_by': created_by,
+            'updated_by': updated_by,
             'cleaned_text': cleaned_text,
             'metadata': {
                 'word_count': word_count,
                 'char_count': char_count,
-                'version': page.get('version', 0)
+                'version': page.get('version', 0),
+                'labels': page.get('labels', '')
             }
         }
         
@@ -179,9 +189,13 @@ def main():
                 'content': chunk_content,
                 'metadata': {
                     'ancestors': page['ancestors'],
-                    'last_updated': page['last_updated'],
+                    'created': page['created'],
+                    'updated': page['updated'],
+                    'created_by': page['created_by'],
+                    'updated_by': page['updated_by'],
                     'word_count': len(chunk_content.split()),
-                    'char_count': len(chunk_content)
+                    'char_count': len(chunk_content),
+                    'labels': page['metadata']['labels']
                 }
             }
             chunked_data.append(chunk)
@@ -201,6 +215,13 @@ def main():
         if first_chunk:
             print(f"Chunk {first_chunk['chunk_index']} of {first_chunk['total_chunks']}\n")
             print(first_chunk['content'][:200] + "...\n")
+            
+            # Display timestamp information
+            print("=== Timestamp Information ===")
+            print(f"Created: {first_chunk['metadata']['created']}")
+            print(f"Created by: {first_chunk['metadata']['created_by']}")
+            print(f"Updated: {first_chunk['metadata']['updated']}")
+            print(f"Updated by: {first_chunk['metadata']['updated_by']}")
 
     # Create exports directory if it doesn't exist
     os.makedirs('exports', exist_ok=True)
@@ -210,7 +231,7 @@ def main():
 
     try:
         with open(cleaned_file_path, 'w', encoding='utf-8') as f:
-            json.dump(cleaned_data, f, ensure_ascii=False, indent=2)
+            json.dump(cleaned_data, f, ensure_ascii=False, indent=2, default=str)
         print(f"Cleaned data exported to {cleaned_file_path}")
     except Exception as e:
         print(f"Error exporting cleaned data: {e}")
@@ -220,12 +241,12 @@ def main():
 
     try:
         with open(chunked_file_path, 'w', encoding='utf-8') as f:
-            json.dump(chunked_data, f, ensure_ascii=False, indent=2)
+            json.dump(chunked_data, f, ensure_ascii=False, indent=2, default=str)
         print(f"Chunked data exported to {chunked_file_path}")
     except Exception as e:
         print(f"Error exporting chunked data: {e}")
 
-    # Provide summary of the data
+    # Provide summary of the data including timestamp statistics
     if cleaned_data:
         # Create a DataFrame for analysis
         df = pd.DataFrame([
@@ -234,7 +255,9 @@ def main():
                 'title': page['title'],
                 'word_count': page['metadata']['word_count'],
                 'char_count': page['metadata']['char_count'],
-                'chunks': len([c for c in chunked_data if c['page_id'] == page['id']])
+                'chunks': len([c for c in chunked_data if c['page_id'] == page['id']]),
+                'created': page['created'],
+                'updated': page['updated']
             } for page in cleaned_data
         ])
         
@@ -245,9 +268,17 @@ def main():
         print(f"Average word count per page: {df['word_count'].mean():.1f}")
         print(f"Average word count per chunk: {sum(c['metadata']['word_count'] for c in chunked_data) / len(chunked_data):.1f}")
         
+        # Timestamp statistics
+        created_count = sum(1 for page in cleaned_data if page['created'] and page['created'] != 'unknown')
+        updated_count = sum(1 for page in cleaned_data if page['updated'] and page['updated'] != 'unknown')
+        print(f"Pages with creation dates: {created_count}/{len(cleaned_data)}")
+        print(f"Pages with update dates: {updated_count}/{len(cleaned_data)}")
+        
         print("\nPage details:")
         for _, row in df.iterrows():
-            print(f"- {row['title']}: {row['word_count']} words, {row['chunks']} chunks")
+            created_str = row['created'] if row['created'] and row['created'] != 'unknown' else 'No date'
+            updated_str = row['updated'] if row['updated'] and row['updated'] != 'unknown' else 'No date'
+            print(f"- {row['title']}: {row['word_count']} words, {row['chunks']} chunks (Created: {created_str}, Updated: {updated_str})")
 
 if __name__ == "__main__":
     main()
