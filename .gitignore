@@ -63,6 +63,7 @@ logs/
 
 # Exports
 exports/
+extraction/exports/
 
 # Jupyter Notebook
 .ipynb_checkpoints
