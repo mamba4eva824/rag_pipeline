@@ -59,7 +59,10 @@ Desktop.ini
 
 # Logs
 *.log
-logs/*.log
+logs/
+
+# Exports
+exports/
 
 # Jupyter Notebook
 .ipynb_checkpoints
