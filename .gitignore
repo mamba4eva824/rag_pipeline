@@ -64,6 +64,7 @@ logs/
 # Exports
 exports/
 extraction/exports/
+data_processing/exports/HIT_*
 
 # Jupyter Notebook
 .ipynb_checkpoints
